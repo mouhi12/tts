@@ -1,4 +1,6 @@
 import { users, ttsRequests, type User, type InsertUser, type TtsRequest, type InsertTtsRequest } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -9,66 +11,46 @@ export interface IStorage {
   updateTtsRequest(id: number, updates: Partial<TtsRequest>): Promise<TtsRequest | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private ttsRequests: Map<number, TtsRequest>;
-  private currentUserId: number;
-  private currentTtsId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.ttsRequests = new Map();
-    this.currentUserId = 1;
-    this.currentTtsId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async createTtsRequest(insertRequest: InsertTtsRequest): Promise<TtsRequest> {
-    const id = this.currentTtsId++;
-    const request: TtsRequest = { 
-      id,
-      text: insertRequest.text,
-      language: insertRequest.language,
-      voice: insertRequest.voice,
-      speed: insertRequest.speed,
-      pitch: insertRequest.pitch,
-      audioUrl: null,
-      duration: null,
-      fileSize: null,
-      createdAt: new Date()
-    };
-    this.ttsRequests.set(id, request);
+    const [request] = await db
+      .insert(ttsRequests)
+      .values(insertRequest)
+      .returning();
     return request;
   }
 
   async getTtsRequest(id: number): Promise<TtsRequest | undefined> {
-    return this.ttsRequests.get(id);
+    const [request] = await db.select().from(ttsRequests).where(eq(ttsRequests.id, id));
+    return request || undefined;
   }
 
   async updateTtsRequest(id: number, updates: Partial<TtsRequest>): Promise<TtsRequest | undefined> {
-    const existing = this.ttsRequests.get(id);
-    if (!existing) return undefined;
-
-    const updated = { ...existing, ...updates };
-    this.ttsRequests.set(id, updated);
-    return updated;
+    const [updated] = await db
+      .update(ttsRequests)
+      .set(updates)
+      .where(eq(ttsRequests.id, id))
+      .returning();
+    return updated || undefined;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
