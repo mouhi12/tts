@@ -207,24 +207,34 @@ export default function Home() {
               onLanguageChange={setSelectedLanguage}
             />
             
-            {/* Generate Button */}
-            <Button
-              onClick={handleGenerate}
-              disabled={isProcessing || !text.trim()}
-              className="w-full mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium text-lg h-12"
-            >
-              {isProcessing ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Volume className="h-5 w-5 mr-2" />
-                  Generate Speech
-                </>
+            {/* Start TTS Button */}
+            <div className="mt-6 space-y-3">
+              <Button
+                onClick={handleGenerate}
+                disabled={isProcessing || !text.trim()}
+                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-lg h-14 shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+              >
+                {isProcessing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
+                    Processing Speech...
+                  </>
+                ) : (
+                  <>
+                    <Volume className="h-6 w-6 mr-3" />
+                    Start TTS Generation
+                  </>
+                )}
+              </Button>
+              
+              {text.trim() && (
+                <div className="text-center">
+                  <p className="text-sm text-gray-600">
+                    Ready to convert {text.length.toLocaleString()} characters
+                  </p>
+                </div>
               )}
-            </Button>
+            </div>
           </div>
         </div>
         

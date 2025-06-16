@@ -52,20 +52,23 @@ export class TtsService {
     // Combine audio buffers
     const combinedAudio = Buffer.concat(audioBuffers);
     
+    // Convert PCM to WAV format
+    const wavAudio = this.convertPcmToWav(combinedAudio);
+    
     // Save to file
     const fileName = `${uuidv4()}.wav`;
     const filePath = path.join(this.outputDir, fileName);
-    fs.writeFileSync(filePath, combinedAudio);
+    fs.writeFileSync(filePath, wavAudio);
 
     // Calculate approximate duration (rough estimate: 150 words per minute)
     const wordCount = text.split(' ').length;
     const duration = Math.ceil((wordCount / 150) * 60);
 
     return {
-      audioContent: combinedAudio,
+      audioContent: wavAudio,
       audioUrl: `/api/audio/${fileName}`,
       duration,
-      fileSize: combinedAudio.length,
+      fileSize: wavAudio.length,
     };
   }
 
@@ -182,7 +185,42 @@ export class TtsService {
     const languageCode = language.split('-')[0];
     const sampleText = sampleTexts[languageCode] || sampleTexts['en'];
 
-    return this.callGeminiTtsApi(sampleText, voice, '1.0', '0');
+    const pcmBuffer = await this.callGeminiTtsApi(sampleText, voice, '1.0', '0');
+    return this.convertPcmToWav(pcmBuffer);
+  }
+
+  private convertPcmToWav(pcmBuffer: Buffer): Buffer {
+    const sampleRate = 24000;
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const byteRate = sampleRate * numChannels * bitsPerSample / 8;
+    const blockAlign = numChannels * bitsPerSample / 8;
+    const dataSize = pcmBuffer.length;
+    const fileSize = 36 + dataSize;
+
+    const header = Buffer.alloc(44);
+    let offset = 0;
+
+    // RIFF header
+    header.write('RIFF', offset); offset += 4;
+    header.writeUInt32LE(fileSize, offset); offset += 4;
+    header.write('WAVE', offset); offset += 4;
+
+    // fmt chunk
+    header.write('fmt ', offset); offset += 4;
+    header.writeUInt32LE(16, offset); offset += 4; // chunk size
+    header.writeUInt16LE(1, offset); offset += 2; // PCM format
+    header.writeUInt16LE(numChannels, offset); offset += 2;
+    header.writeUInt32LE(sampleRate, offset); offset += 4;
+    header.writeUInt32LE(byteRate, offset); offset += 4;
+    header.writeUInt16LE(blockAlign, offset); offset += 2;
+    header.writeUInt16LE(bitsPerSample, offset); offset += 2;
+
+    // data chunk
+    header.write('data', offset); offset += 4;
+    header.writeUInt32LE(dataSize, offset);
+
+    return Buffer.concat([header, pcmBuffer]);
   }
 
   private splitTextIntoChunks(text: string, maxChunkSize: number): string[] {
