@@ -154,7 +154,7 @@ export function VoiceSelector({
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900">
-                      {getVoiceDisplayName(voice.name)}
+                      {voice.displayName}
                     </div>
                     <div className="text-xs text-gray-500">
                       {formatVoiceType(voice)}
