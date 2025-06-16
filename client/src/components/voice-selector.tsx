@@ -62,6 +62,12 @@ export function VoiceSelector({
       setPreviewingVoice(voiceName);
       
       const audioBlob = await previewVoice(selectedLanguage, voiceName);
+      
+      // Check if we got a valid blob
+      if (!audioBlob || audioBlob.size === 0) {
+        throw new Error('No audio data received');
+      }
+      
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       
@@ -72,22 +78,33 @@ export function VoiceSelector({
         URL.revokeObjectURL(audioUrl);
       };
       
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
         setPreviewingVoice(null);
         URL.revokeObjectURL(audioUrl);
         toast({
           title: "Preview failed",
-          description: "Unable to play voice preview.",
+          description: "Unable to play voice preview. The audio format may not be supported.",
           variant: "destructive",
         });
       };
       
+      // Add loading state feedback
+      audio.onloadstart = () => {
+        console.log('Audio loading started');
+      };
+      
+      audio.oncanplay = () => {
+        console.log('Audio ready to play');
+      };
+      
       await audio.play();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Voice preview error:', error);
       setPreviewingVoice(null);
       toast({
         title: "Preview failed",
-        description: "Unable to generate voice preview.",
+        description: error.message || "Unable to generate voice preview. Please try again.",
         variant: "destructive",
       });
     }
@@ -164,12 +181,17 @@ export function VoiceSelector({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                  className={`p-2 transition-colors ${
+                    previewingVoice === voice.name 
+                      ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' 
+                      : 'text-gray-400 hover:text-blue-600 hover:bg-gray-50'
+                  }`}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleVoicePreview(voice.name);
                   }}
-                  title={previewingVoice === voice.name ? 'Stop preview' : 'Test voice'}
+                  title={previewingVoice === voice.name ? 'Stop preview' : 'Test this voice'}
+                  disabled={previewingVoice !== null && previewingVoice !== voice.name}
                 >
                   {previewingVoice === voice.name ? (
                     <Pause className="h-4 w-4" />
