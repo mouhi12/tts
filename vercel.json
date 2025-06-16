@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "next.config.js",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/audio/(.*)",
+      "dest": "/api/audio/$1"
+    }
+  ],
+  "env": {
+    "GEMINI_API_KEY": "@gemini_api_key"
+  },
+  "functions": {
+    "pages/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  }
+}
