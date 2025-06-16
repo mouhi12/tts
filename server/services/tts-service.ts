@@ -40,12 +40,12 @@ export class TtsService {
   async generateSpeech(options: TtsOptions): Promise<TtsResult> {
     const { text, language, voice, speed, pitch } = options;
 
-    // Split text into chunks if it's too large
+    // Split text into chunks if it's too large (Gemini has character limits)
     const chunks = this.splitTextIntoChunks(text, 5000);
     const audioBuffers: Buffer[] = [];
 
     for (const chunk of chunks) {
-      const audioBuffer = await this.callGoogleTtsApi(chunk, language, voice, speed, pitch);
+      const audioBuffer = await this.callGeminiTtsApi(chunk, voice, speed, pitch);
       audioBuffers.push(audioBuffer);
     }
 
@@ -53,7 +53,7 @@ export class TtsService {
     const combinedAudio = Buffer.concat(audioBuffers);
     
     // Save to file
-    const fileName = `${uuidv4()}.mp3`;
+    const fileName = `${uuidv4()}.wav`;
     const filePath = path.join(this.outputDir, fileName);
     fs.writeFileSync(filePath, combinedAudio);
 
@@ -69,20 +69,30 @@ export class TtsService {
     };
   }
 
-  private async callGoogleTtsApi(text: string, language: string, voice: string, speed: string, pitch: string): Promise<Buffer> {
-    const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${this.apiKey}`;
+  private async callGeminiTtsApi(text: string, voice: string, speed: string, pitch: string): Promise<Buffer> {
+    const url = `${this.GEMINI_API_URL}/${this.GEMINI_MODEL}:generateContent?key=${this.apiKey}`;
     
+    // Create prompt with speed and pitch instructions
+    const speedInstruction = this.getSpeedInstruction(parseFloat(speed));
+    const pitchInstruction = this.getPitchInstruction(parseFloat(pitch));
+    const prompt = `${speedInstruction}${pitchInstruction}Say: ${text}`;
+
     const requestBody = {
-      input: { text },
-      voice: {
-        languageCode: language,
-        name: voice,
-      },
-      audioConfig: {
-        audioEncoding: 'MP3',
-        speakingRate: parseFloat(speed),
-        pitch: parseFloat(pitch),
-      },
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
+      generationConfig: {
+        responseModalities: ["AUDIO"],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: this.mapVoiceToGemini(voice)
+            }
+          }
+        }
+      }
     };
 
     const response = await fetch(url, {
@@ -95,17 +105,66 @@ export class TtsService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`TTS API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+      throw new Error(`Gemini TTS API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
     
-    if (!data.audioContent) {
-      throw new Error('No audio content received from TTS API');
+    if (!data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data) {
+      throw new Error('No audio content received from Gemini TTS API');
     }
 
-    // Convert base64 to buffer
-    return Buffer.from(data.audioContent, 'base64');
+    // Convert base64 to buffer (Gemini returns PCM audio data)
+    return Buffer.from(data.candidates[0].content.parts[0].inlineData.data, 'base64');
+  }
+
+  private getSpeedInstruction(speed: number): string {
+    if (speed < 0.7) return 'Speak very slowly. ';
+    if (speed < 0.9) return 'Speak slowly. ';
+    if (speed > 1.5) return 'Speak very quickly. ';
+    if (speed > 1.2) return 'Speak quickly. ';
+    return '';
+  }
+
+  private getPitchInstruction(pitch: number): string {
+    if (pitch < -10) return 'Use a very low pitch. ';
+    if (pitch < -5) return 'Use a low pitch. ';
+    if (pitch > 10) return 'Use a very high pitch. ';
+    if (pitch > 5) return 'Use a high pitch. ';
+    return '';
+  }
+
+  private mapVoiceToGemini(voice: string): string {
+    // Map our voice names to Gemini's available voices
+    const voiceMap: Record<string, string> = {
+      'en-US-Neural2-A': 'Kore',
+      'en-US-Neural2-C': 'Charon',
+      'en-US-Neural2-D': 'Kore',
+      'en-US-Neural2-E': 'Charon',
+      'en-US-Neural2-F': 'Puck',
+      'en-US-Neural2-G': 'Charon',
+      'en-US-Neural2-H': 'Puck',
+      'en-US-Neural2-I': 'Kore',
+      'en-US-Neural2-J': 'Kore',
+      'es-ES-Neural2-A': 'Charon',
+      'es-ES-Neural2-B': 'Kore',
+      'es-ES-Neural2-C': 'Puck',
+      'es-ES-Neural2-D': 'Charon',
+      'es-ES-Neural2-E': 'Puck',
+      'es-ES-Neural2-F': 'Kore',
+      'fr-FR-Neural2-A': 'Charon',
+      'fr-FR-Neural2-B': 'Kore',
+      'fr-FR-Neural2-C': 'Puck',
+      'fr-FR-Neural2-D': 'Kore',
+      'fr-FR-Neural2-E': 'Charon',
+      'de-DE-Neural2-A': 'Charon',
+      'de-DE-Neural2-B': 'Kore',
+      'de-DE-Neural2-C': 'Puck',
+      'de-DE-Neural2-D': 'Kore',
+      'de-DE-Neural2-F': 'Charon',
+    };
+
+    return voiceMap[voice] || 'Kore'; // Default to Kore if voice not found
   }
 
   async previewVoice(language: string, voice: string): Promise<Buffer> {
@@ -123,7 +182,7 @@ export class TtsService {
     const languageCode = language.split('-')[0];
     const sampleText = sampleTexts[languageCode] || sampleTexts['en'];
 
-    return this.callGoogleTtsApi(sampleText, language, voice, '1.0', '0');
+    return this.callGeminiTtsApi(sampleText, voice, '1.0', '0');
   }
 
   private splitTextIntoChunks(text: string, maxChunkSize: number): string[] {

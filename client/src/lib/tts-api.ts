@@ -12,6 +12,7 @@ export interface Voice {
   name: string;
   gender: 'MALE' | 'FEMALE' | 'NEUTRAL';
   type: 'Neural' | 'Standard' | 'WaveNet';
+  displayName: string;
 }
 
 export async function generateSpeech(request: TtsRequestInput): Promise<TtsResponse> {
