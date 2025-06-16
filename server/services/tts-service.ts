@@ -25,9 +25,9 @@ export class TtsService {
 
   constructor() {
     // Initialize with API key from environment
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('Google API key not found in environment variables');
+      throw new Error('Gemini API key not found in environment variables');
     }
 
     this.apiKey = apiKey;
