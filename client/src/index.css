@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(222, 84%, 4.9%);
+  --muted: hsl(210, 40%, 98%);
+  --muted-foreground: hsl(215, 16%, 46.9%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(222, 84%, 4.9%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(222, 84%, 4.9%);
+  --border: hsl(214, 32%, 91.2%);
+  --input: hsl(214, 32%, 91.2%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(210, 40%, 98%);
+  --secondary: hsl(210, 40%, 96%);
+  --secondary-foreground: hsl(222, 47%, 11%);
+  --accent: hsl(210, 40%, 96%);
+  --accent-foreground: hsl(222, 47%, 11%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(207, 90%, 54%);
+  --radius: 0.75rem;
+  
+  /* Custom TTS App Colors */
+  --primary-blue: hsl(207, 90%, 54%);
+  --primary-blue-dark: hsl(207, 90%, 45%);
+  --accent-orange: hsl(14, 100%, 60%);
+  --accent-orange-dark: hsl(14, 100%, 50%);
+  --gray-50: hsl(210, 20%, 98%);
+  --gray-100: hsl(220, 14%, 96%);
+  --gray-200: hsl(220, 13%, 91%);
+  --gray-300: hsl(216, 12%, 84%);
+  --gray-400: hsl(218, 11%, 65%);
+  --gray-500: hsl(220, 9%, 46%);
+  --gray-600: hsl(215, 14%, 34%);
+  --gray-700: hsl(217, 19%, 27%);
+  --gray-800: hsl(215, 28%, 17%);
+  --gray-900: hsl(222, 47%, 11%);
+}
+
+.dark {
+  --background: hsl(222, 84%, 4.9%);
+  --foreground: hsl(210, 40%, 98%);
+  --muted: hsl(217, 32%, 17.5%);
+  --muted-foreground: hsl(215, 20%, 65%);
+  --popover: hsl(222, 84%, 4.9%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --card: hsl(222, 84%, 4.9%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --border: hsl(217, 32%, 17.5%);
+  --input: hsl(217, 32%, 17.5%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(222, 47%, 11%);
+  --secondary: hsl(217, 32%, 17.5%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --accent: hsl(217, 32%, 17.5%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 62%, 30%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(207, 90%, 54%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+}
+
+@layer components {
+  .tts-gradient-bg {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+  }
+  
+  .voice-avatar {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium;
+  }
+  
+  .voice-avatar-a {
+    background: linear-gradient(135deg, hsl(221, 83%, 53%) 0%, hsl(262, 83%, 58%) 100%);
+  }
+  
+  .voice-avatar-b {
+    background: linear-gradient(135deg, hsl(142, 76%, 36%) 0%, hsl(158, 64%, 52%) 100%);
+  }
+  
+  .voice-avatar-c {
+    background: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(316, 73%, 52%) 100%);
+  }
+  
+  .voice-avatar-d {
+    background: linear-gradient(135deg, hsl(25, 95%, 53%) 0%, hsl(0, 91%, 71%) 100%);
+  }
+  
+  .audio-progress-bar {
+    @apply w-full bg-gray-300 rounded-full h-2 relative cursor-pointer;
+  }
+  
+  .audio-progress-fill {
+    @apply bg-blue-600 h-2 rounded-full transition-all duration-300;
+  }
+  
+  .processing-gradient {
+    background: linear-gradient(90deg, var(--primary-blue) 0%, var(--accent-orange) 100%);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar for voice list */
+.voice-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.voice-list-container::-webkit-scrollbar-track {
+  background: hsl(220, 13%, 91%);
+  border-radius: 3px;
+}
+
+.voice-list-container::-webkit-scrollbar-thumb {
+  background: hsl(218, 11%, 65%);
+  border-radius: 3px;
+}
+
+.voice-list-container::-webkit-scrollbar-thumb:hover {
+  background: hsl(220, 9%, 46%);
+}
+
+/* Flag emoji sizing fix */
+.flag-emoji {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+/* Audio range slider custom styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: hsl(220, 13%, 91%);
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-blue);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary-blue);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
