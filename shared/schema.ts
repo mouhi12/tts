@@ -32,6 +32,9 @@ export const insertTtsRequestSchema = createInsertSchema(ttsRequests).omit({
   audioUrl: true,
   duration: true,
   fileSize: true,
+}).extend({
+  speed: z.string().default("1.0"),
+  pitch: z.string().default("0"),
 });
 
 export const ttsRequestSchema = z.object({
