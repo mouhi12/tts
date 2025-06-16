@@ -1,4 +1,3 @@
-import { TextToSpeechClient } from '@google-cloud/text-to-speech';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -19,20 +18,19 @@ export interface TtsResult {
 }
 
 export class TtsService {
-  private client: TextToSpeechClient;
+  private apiKey: string;
   private outputDir: string;
+  private readonly GEMINI_MODEL = 'gemini-2.5-flash-preview-tts';
+  private readonly GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
   constructor() {
     // Initialize with API key from environment
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_CLOUD_API_KEY;
+    const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-      throw new Error('Google Cloud API key not found in environment variables');
+      throw new Error('Google API key not found in environment variables');
     }
 
-    this.client = new TextToSpeechClient({
-      apiKey: apiKey,
-    });
-
+    this.apiKey = apiKey;
     this.outputDir = path.join(process.cwd(), 'dist', 'audio');
     if (!fs.existsSync(this.outputDir)) {
       fs.mkdirSync(this.outputDir, { recursive: true });
@@ -42,28 +40,13 @@ export class TtsService {
   async generateSpeech(options: TtsOptions): Promise<TtsResult> {
     const { text, language, voice, speed, pitch } = options;
 
-    // Split text into chunks if it's too large (Google TTS has character limits)
+    // Split text into chunks if it's too large
     const chunks = this.splitTextIntoChunks(text, 5000);
     const audioBuffers: Buffer[] = [];
 
     for (const chunk of chunks) {
-      const request = {
-        input: { text: chunk },
-        voice: {
-          languageCode: language,
-          name: voice,
-        },
-        audioConfig: {
-          audioEncoding: 'MP3' as const,
-          speakingRate: parseFloat(speed),
-          pitch: parseFloat(pitch),
-        },
-      };
-
-      const [response] = await this.client.synthesizeSpeech(request);
-      if (response.audioContent) {
-        audioBuffers.push(response.audioContent as Buffer);
-      }
+      const audioBuffer = await this.callGoogleTtsApi(chunk, language, voice, speed, pitch);
+      audioBuffers.push(audioBuffer);
     }
 
     // Combine audio buffers
@@ -86,6 +69,45 @@ export class TtsService {
     };
   }
 
+  private async callGoogleTtsApi(text: string, language: string, voice: string, speed: string, pitch: string): Promise<Buffer> {
+    const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${this.apiKey}`;
+    
+    const requestBody = {
+      input: { text },
+      voice: {
+        languageCode: language,
+        name: voice,
+      },
+      audioConfig: {
+        audioEncoding: 'MP3',
+        speakingRate: parseFloat(speed),
+        pitch: parseFloat(pitch),
+      },
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`TTS API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.audioContent) {
+      throw new Error('No audio content received from TTS API');
+    }
+
+    // Convert base64 to buffer
+    return Buffer.from(data.audioContent, 'base64');
+  }
+
   async previewVoice(language: string, voice: string): Promise<Buffer> {
     const sampleTexts: Record<string, string> = {
       'en': 'Hello, this is how I sound. I can help you convert your text to natural speech.',
@@ -101,19 +123,7 @@ export class TtsService {
     const languageCode = language.split('-')[0];
     const sampleText = sampleTexts[languageCode] || sampleTexts['en'];
 
-    const request = {
-      input: { text: sampleText },
-      voice: {
-        languageCode: language,
-        name: voice,
-      },
-      audioConfig: {
-        audioEncoding: 'MP3' as const,
-      },
-    };
-
-    const [response] = await this.client.synthesizeSpeech(request);
-    return response.audioContent as Buffer;
+    return this.callGoogleTtsApi(sampleText, language, voice, '1.0', '0');
   }
 
   private splitTextIntoChunks(text: string, maxChunkSize: number): string[] {

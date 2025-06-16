@@ -169,6 +169,7 @@ export function VoiceSelector({
                     e.stopPropagation();
                     handleVoicePreview(voice.name);
                   }}
+                  title={previewingVoice === voice.name ? 'Stop preview' : 'Test voice'}
                 >
                   {previewingVoice === voice.name ? (
                     <Pause className="h-4 w-4" />

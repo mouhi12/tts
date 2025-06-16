@@ -64,9 +64,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         voice: validatedData.voice,
         speed: validatedData.speed,
         pitch: validatedData.pitch,
-        audioUrl: null,
-        duration: null,
-        fileSize: null,
       });
 
       // Generate speech

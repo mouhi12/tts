@@ -42,8 +42,15 @@ export class MemStorage implements IStorage {
   async createTtsRequest(insertRequest: InsertTtsRequest): Promise<TtsRequest> {
     const id = this.currentTtsId++;
     const request: TtsRequest = { 
-      ...insertRequest, 
       id,
+      text: insertRequest.text,
+      language: insertRequest.language,
+      voice: insertRequest.voice,
+      speed: insertRequest.speed,
+      pitch: insertRequest.pitch,
+      audioUrl: null,
+      duration: null,
+      fileSize: null,
       createdAt: new Date()
     };
     this.ttsRequests.set(id, request);
